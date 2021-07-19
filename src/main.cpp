@@ -8,7 +8,7 @@
 void process_input(GLFWwindow* window);
 void on_window_change(GLFWwindow* window, int width, int height);
 unsigned int compile_shader(unsigned int type, const char* source);
-unsigned int link_shaders(std::vector<unsigned int>& shaders);
+unsigned int link_shaders(const std::vector<unsigned int>& shaders);
 void configure_buffer(unsigned int& vertex_buffer_object, unsigned int& vertex_array_object);
 
 // Entry method for the applications
@@ -114,12 +114,13 @@ void process_input(GLFWwindow* window) {
 unsigned int compile_shader(unsigned int type, const char* source) {
   unsigned int shader = glCreateShader(type);
   glShaderSource(shader, 1, &source, NULL);
+  glCompileShader(shader);
 
   int success = 0;
 
   glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
 
-  if (success == GL_TRUE) {
+  if (success != GL_TRUE) {
     char info_log[512];
 
     glGetShaderInfoLog(shader, 512, NULL, info_log);
@@ -137,7 +138,7 @@ unsigned int compile_shader(unsigned int type, const char* source) {
 //  shaders - contains IDs of compiled shaders
 //
 // Returns the ID of the shader program.
-unsigned int link_shaders(std::vector<unsigned int>& shaders) {
+unsigned int link_shaders(const std::vector<unsigned int>& shaders) {
   unsigned int shader_program = glCreateProgram();
 
   for (auto shader : shaders) {
@@ -150,7 +151,7 @@ unsigned int link_shaders(std::vector<unsigned int>& shaders) {
 
   glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
 
-  if (success == GL_TRUE) {
+  if (success != GL_TRUE) {
     char info_log[512];
     glGetProgramInfoLog(shader_program, 512, NULL, info_log);
     std::cout << "Shader linking failed: [" << info_log << "]" << std::endl;
