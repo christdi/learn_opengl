@@ -76,6 +76,12 @@ void shader::load(const char* vertex_shader_path, const char* fragment_shader_pa
   }
 }
 
+void shader::setFloat(const std::string& name, float value) const noexcept {
+  assert(_id != 0);
+
+  glUniform1f(glGetUniformLocation(_id, name.c_str()), value);
+}
+
 // Instructs OpenGL to use this shader.
 void shader::use() {
   assert(_id != 0);

@@ -11,6 +11,8 @@ class shader {
 
   void load(const char* vertex_shader_path, const char* fragment_shader_path);
 
+  void setFloat(const std::string& name, float value) const noexcept;
+
   void use();
 
   private:
