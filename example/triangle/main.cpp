@@ -9,7 +9,7 @@ void process_input(GLFWwindow* window);
 void on_window_change(GLFWwindow* window, int width, int height);
 unsigned int compile_shader(unsigned int type, const char* source);
 unsigned int link_shaders(const std::vector<unsigned int>& shaders);
-void configure_buffer(unsigned int& vertex_buffer_object, unsigned int& vertex_array_object);
+unsigned int create_vertex_buffer(float* vertices, size_t n);
 
 // Entry method for the applications
 //
@@ -46,21 +46,63 @@ int main(int argc, char* argv[]) {
                                             "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
                                             "}\0";
 
-  static const char* fragment_shader_source = "#version 330 core\n"
-                                              "out vec4 FragColor;\n"
-                                              "void main()\n"
-                                              "{\n"
-                                              "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-                                              "}\n\0";
+  static const char* yellow_fragment_shader_source = "#version 330 core\n"
+                                                     "out vec4 FragColor;\n"
+                                                     "void main()\n"
+                                                     "{\n"
+                                                     "   FragColor = vec4(1.0f, 1.0f, 0.0f, 1.0f);\n"
+                                                     "}\n\0";
+
+  static const char* green_fragment_shader_source = "#version 330 core\n"
+                                                     "out vec4 FragColor;\n"
+                                                     "void main()\n"
+                                                     "{\n"
+                                                     "   FragColor = vec4(0.0f, 1.0f, 0.0f, 1.0f);\n"
+                                                     "}\n\0";
 
   std::vector<unsigned int> shaders;
   shaders.push_back(compile_shader(GL_VERTEX_SHADER, vertex_shader_source));
-  shaders.push_back(compile_shader(GL_FRAGMENT_SHADER, fragment_shader_source));
-  unsigned int shader_program = link_shaders(shaders);
+  shaders.push_back(compile_shader(GL_FRAGMENT_SHADER, yellow_fragment_shader_source));
+  unsigned int yellow_shader_program = link_shaders(shaders);
 
-  unsigned int vertex_buffer_object = 0;
-  unsigned int vertex_array_object = 0;
-  configure_buffer(vertex_buffer_object, vertex_array_object);
+  shaders.clear();
+  shaders.push_back(compile_shader(GL_VERTEX_SHADER, vertex_shader_source));
+  shaders.push_back(compile_shader(GL_FRAGMENT_SHADER, green_fragment_shader_source));
+  unsigned int green_shader_program = link_shaders(shaders);
+
+  unsigned int vao[3];
+  unsigned int vbo[3];
+
+  glGenVertexArrays(3, vao);
+  glBindVertexArray(vao[0]);
+
+  float t1_vertices[] = {
+    -0.8f, -0.8f, 0.0f,
+    0.0f, -0.8f, 0.0f,
+    -0.4f, 0.0f, 0.0f
+  };
+
+  vbo[0] = create_vertex_buffer(t1_vertices, sizeof(t1_vertices));
+
+  glBindVertexArray(vao[1]);
+
+  float t2_vertices[] = {
+    0.0f, -0.8f, 0.0f,
+    0.8f, -0.8f, 0.0f,
+    0.4f, 0.0f, 0.0f
+  };
+
+  vbo[1] = create_vertex_buffer(t2_vertices, sizeof(t2_vertices));
+
+  glBindVertexArray(vao[2]);
+
+  float t3_vertices[] = {
+    -0.4f, 0.0f, 0.0f,
+    0.4f, 0.0f, 0.0f,
+    0.0f, 0.8f, 0.0f
+  };
+
+  vbo[2] = create_vertex_buffer(t3_vertices, sizeof(t3_vertices));
 
   while (!glfwWindowShouldClose(window)) {
     process_input(window);
@@ -68,17 +110,26 @@ int main(int argc, char* argv[]) {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glUseProgram(shader_program);
-    glBindVertexArray(vertex_array_object);
+    glUseProgram(yellow_shader_program);
+    glBindVertexArray(vao[0]);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    glBindVertexArray(vao[1]);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    glUseProgram(green_shader_program);
+    glBindVertexArray(vao[2]);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
 
-  glDeleteVertexArrays(1, &vertex_array_object);
-  glDeleteBuffers(1, &vertex_buffer_object);
-  glDeleteProgram(shader_program);
+  glDeleteVertexArrays(3, vao);
+  glDeleteBuffers(3, vbo);
+
+  glDeleteProgram(yellow_shader_program);
+  glDeleteProgram(green_shader_program);
 
   glfwTerminate();
 
@@ -125,8 +176,6 @@ unsigned int compile_shader(unsigned int type, const char* source) {
 
     glGetShaderInfoLog(shader, 512, NULL, info_log);
     std::cout << "Shader creation failed: [" << info_log << "]" << std::endl;
-
-    // TODO(Chris I) Throw an exception if the shader isn't compiled successfully
   }
 
   return shader;
@@ -164,30 +213,23 @@ unsigned int link_shaders(const std::vector<unsigned int>& shaders) {
   return shader_program;
 }
 
-// Configure the various buffers required to make this run
+// Creates and returns a vertex buffer.
 //
 // Parameters
-// vertex_buffer_object - reference to our vertex buffer object
-// vertex_array_object - reference to our vertex array object
-void configure_buffer(unsigned int& vertex_buffer_object, unsigned int& vertex_array_object) {
-  float vertices[] = {
-    -0.5f, -0.5f, 0.0f,
-    0.5f, -0.5f, 0.0f,
-    0.0f, 0.5f, 0.0f
-  };
+// vertices - the vertices to be copied to the buffer
+// n - the amount of vertices 
+unsigned int create_vertex_buffer(float* vertices, size_t n) {
+  unsigned int vertex_buffer_id = 0;
 
-  // TODO(Chris I) Understand everything beneath this point.  Currently black magic.
-  glGenVertexArrays(1, &vertex_array_object);
-  glGenBuffers(1, &vertex_buffer_object);
-  glBindVertexArray(vertex_array_object);
+  glGenBuffers(1, &vertex_buffer_id);
 
-  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_object);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_id);
 
+  glBufferData(GL_ARRAY_BUFFER, n, vertices, GL_STATIC_DRAW);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
   glEnableVertexAttribArray(0);
 
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-  glBindVertexArray(0);
+  return vertex_buffer_id;
 }
