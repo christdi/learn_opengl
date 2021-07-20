@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
 }
 
 // Runs the application
-// 
+//
 // Returns a status code which should be returned to the OS
 int run_application() {
   glfwInit();
@@ -37,7 +37,7 @@ int run_application() {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-  GLFWwindow* window = glfwCreateWindow(800, 600, "opengl_triangle", NULL, NULL);
+  GLFWwindow* window = glfwCreateWindow(800, 600, "OpenGL", NULL, NULL);
 
   if (window == NULL) {
     std::cout << "Failed to create window" << std::endl;
@@ -63,9 +63,9 @@ int run_application() {
   glBindVertexArray(vao);
 
   float vertices[] = {
-    -0.5f, -0.5f, 0.0f,
-    0.5f, -0.5f, 0.0f,
-    0.0f, 0.5f, 0.0f
+    0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,
+    -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
+    0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f
   };
 
   vbo = create_vertex_buffer(vertices, sizeof(vertices));
@@ -77,7 +77,7 @@ int run_application() {
     glClear(GL_COLOR_BUFFER_BIT);
 
     default_shader.use();
-    default_shader.setFloat("offset", 0.5f);
+    default_shader.setFloat("offset", 0.0f);
 
     glBindVertexArray(vao);
     glDrawArrays(GL_TRIANGLES, 0, 3);
@@ -113,68 +113,11 @@ void process_input(GLFWwindow* window) {
   }
 }
 
-// Compiles a shader from given source
-//
-// Parameters
-// source - OpenGL source to be compiled
-//
-// Returns an ID representing the shader
-unsigned int compile_shader(unsigned int type, const char* source) {
-  unsigned int shader = glCreateShader(type);
-  glShaderSource(shader, 1, &source, NULL);
-  glCompileShader(shader);
-
-  int success = 0;
-
-  glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-
-  if (success != GL_TRUE) {
-    char info_log[512];
-
-    glGetShaderInfoLog(shader, 512, NULL, info_log);
-    std::cout << "Shader creation failed: [" << info_log << "]" << std::endl;
-  }
-
-  return shader;
-}
-
-// Links compiled shaders to an OpenGL program
-//
-// Parameters
-//  shaders - contains IDs of compiled shaders
-//
-// Returns the ID of the shader program.
-unsigned int link_shaders(const std::vector<unsigned int>& shaders) {
-  unsigned int shader_program = glCreateProgram();
-
-  for (auto shader : shaders) {
-    glAttachShader(shader_program, shader);
-  }
-
-  glLinkProgram(shader_program);
-
-  int success = 0;
-
-  glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
-
-  if (success != GL_TRUE) {
-    char info_log[512];
-    glGetProgramInfoLog(shader_program, 512, NULL, info_log);
-    std::cout << "Shader linking failed: [" << info_log << "]" << std::endl;
-  }
-
-  for (auto shader : shaders) {
-    glDeleteShader(shader);
-  }
-
-  return shader_program;
-}
-
 // Creates and returns a vertex buffer.
 //
 // Parameters
 // vertices - the vertices to be copied to the buffer
-// n - the amount of vertices 
+// n - the amount of vertices
 unsigned int create_vertex_buffer(float* vertices, size_t n) {
   unsigned int vertex_buffer_id = 0;
 
@@ -183,8 +126,12 @@ unsigned int create_vertex_buffer(float* vertices, size_t n) {
   glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_id);
 
   glBufferData(GL_ARRAY_BUFFER, n, vertices, GL_STATIC_DRAW);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+  
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
   glEnableVertexAttribArray(0);
+
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+  glEnableVertexAttribArray(1);
 
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
