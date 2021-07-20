@@ -5,6 +5,10 @@
 #include <iostream>
 #include <vector>
 
+#include "myopengl/shader.h"
+#include "myopengl/shader_exception.h"
+
+int run_application();
 void process_input(GLFWwindow* window);
 void on_window_change(GLFWwindow* window, int width, int height);
 unsigned int compile_shader(unsigned int type, const char* source);
@@ -17,6 +21,17 @@ unsigned int create_vertex_buffer(float* vertices, size_t n);
 // argc - count of command line argumnets
 // argv - array of command line arguments
 int main(int argc, char* argv[]) {
+  try {
+    return run_application();
+  } catch (myopengl::shader_exception& e) {
+    std::cout << "Error loading shaders: [" << e.what() << "]" << std::endl;
+  }
+}
+
+// Runs the application
+// 
+// Returns a status code which should be returned to the OS
+int run_application() {
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -39,36 +54,7 @@ int main(int argc, char* argv[]) {
     return -1;
   }
 
-  static const char* vertex_shader_source = "#version 330 core\n"
-                                            "layout (location = 0) in vec3 aPos;\n"
-                                            "void main()\n"
-                                            "{\n"
-                                            "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-                                            "}\0";
-
-  static const char* yellow_fragment_shader_source = "#version 330 core\n"
-                                                     "out vec4 FragColor;\n"
-                                                     "void main()\n"
-                                                     "{\n"
-                                                     "   FragColor = vec4(1.0f, 1.0f, 0.0f, 1.0f);\n"
-                                                     "}\n\0";
-
-  static const char* green_fragment_shader_source = "#version 330 core\n"
-                                                     "out vec4 FragColor;\n"
-                                                     "void main()\n"
-                                                     "{\n"
-                                                     "   FragColor = vec4(0.0f, 1.0f, 0.0f, 1.0f);\n"
-                                                     "}\n\0";
-
-  std::vector<unsigned int> shaders;
-  shaders.push_back(compile_shader(GL_VERTEX_SHADER, vertex_shader_source));
-  shaders.push_back(compile_shader(GL_FRAGMENT_SHADER, yellow_fragment_shader_source));
-  unsigned int yellow_shader_program = link_shaders(shaders);
-
-  shaders.clear();
-  shaders.push_back(compile_shader(GL_VERTEX_SHADER, vertex_shader_source));
-  shaders.push_back(compile_shader(GL_FRAGMENT_SHADER, green_fragment_shader_source));
-  unsigned int green_shader_program = link_shaders(shaders);
+  myopengl::shader default_shader("./shader/vertex.glsl", "./shader/fragment.glsl");
 
   unsigned int vao[3];
   unsigned int vbo[3];
@@ -110,14 +96,14 @@ int main(int argc, char* argv[]) {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glUseProgram(yellow_shader_program);
+    default_shader.use();
+
     glBindVertexArray(vao[0]);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
     glBindVertexArray(vao[1]);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
-    glUseProgram(green_shader_program);
     glBindVertexArray(vao[2]);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -127,9 +113,6 @@ int main(int argc, char* argv[]) {
 
   glDeleteVertexArrays(3, vao);
   glDeleteBuffers(3, vbo);
-
-  glDeleteProgram(yellow_shader_program);
-  glDeleteProgram(green_shader_program);
 
   glfwTerminate();
 
