@@ -74,20 +74,30 @@ int run_application() {
   glGenVertexArrays(1, &vao);
   glBindVertexArray(vao);
 
+  stbi_set_flip_vertically_on_load(true);
+
   unsigned int vbo = create_vertex_buffer(vertices, sizeof(vertices));
   unsigned int ebo = create_element_buffer(indices, sizeof(indices));
   unsigned int texture = create_texture("./texture/container.jpg", GL_RGB);
+  unsigned int texture2 = create_texture("./texture/awesomeface.png", GL_RGBA);
 
   glBindVertexArray(0);
+
+  default_shader.use();
+  default_shader.setInt("texture2", 1);
+
 
   while (!glfwWindowShouldClose(window)) {
     process_input(window);
 
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT);    
 
-    glBindTexture(GL_TEXTURE_2D, texture);    
-    default_shader.use();
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, texture2);
+    
     glBindVertexArray(vao);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 

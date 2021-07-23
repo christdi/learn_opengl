@@ -76,6 +76,12 @@ void shader::load(const char* vertex_shader_path, const char* fragment_shader_pa
   }
 }
 
+void shader::setInt(const std::string& name, int value) const noexcept {
+  assert(_id != 0);
+
+  glUniform1i(glGetUniformLocation(_id, name.c_str()), value);
+}
+
 void shader::setFloat(const std::string& name, float value) const noexcept {
   assert(_id != 0);
 
