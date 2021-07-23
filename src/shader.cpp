@@ -76,7 +76,23 @@ void shader::load(const char* vertex_shader_path, const char* fragment_shader_pa
   }
 }
 
-void shader::setFloat(const std::string& name, float value) const noexcept {
+// Sets an integer uniform value in the shaders.
+//
+// Parameters
+// name - the name of the uniform to set
+// value - the value to be set
+void shader::set_int(const std::string& name, int value) const noexcept {
+  assert(_id != 0);
+
+  glUniform1i(glGetUniformLocation(_id, name.c_str()), value);
+}
+
+// Sets a float uniform value in the shaders.
+//
+// Parameters
+// name - the name of the uniform to set
+// value - the value to be set
+void shader::set_float(const std::string& name, float value) const noexcept {
   assert(_id != 0);
 
   glUniform1f(glGetUniformLocation(_id, name.c_str()), value);
