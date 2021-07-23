@@ -10,12 +10,15 @@
 #include "myopengl/shader.h"
 #include "myopengl/shader_exception.h"
 
+typedef void (*configure_texture_t)(void);
+
 int run_application();
-void process_input(GLFWwindow* window);
+void process_input(GLFWwindow* window, myopengl::shader& shader, float& mix);
 void on_window_change(GLFWwindow* window, int width, int height);
 unsigned int create_vertex_buffer(float* vertices, size_t n);
 unsigned int create_element_buffer(unsigned int* indices, size_t n);
-unsigned int create_texture(const char* path, unsigned int format);
+unsigned int create_texture(const char* path, unsigned int format, configure_texture_t configure_texture);
+void standard_texture_configuration();
 
 // Entry method for the applications
 //
@@ -78,17 +81,19 @@ int run_application() {
 
   unsigned int vbo = create_vertex_buffer(vertices, sizeof(vertices));
   unsigned int ebo = create_element_buffer(indices, sizeof(indices));
-  unsigned int texture = create_texture("./texture/container.jpg", GL_RGB);
-  unsigned int texture2 = create_texture("./texture/awesomeface.png", GL_RGBA);
+  unsigned int texture = create_texture("./texture/container.jpg", GL_RGB, standard_texture_configuration);
+  unsigned int texture2 = create_texture("./texture/awesomeface.png", GL_RGBA, standard_texture_configuration);
 
   glBindVertexArray(0);
 
-  default_shader.use();
-  default_shader.setInt("texture2", 1);
+  float mix = 0.2f;
 
+  default_shader.use();
+  default_shader.set_int("Texture2", 1);
+  default_shader.set_float("Mix", mix);
 
   while (!glfwWindowShouldClose(window)) {
-    process_input(window);
+    process_input(window, default_shader, mix);
 
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);    
@@ -128,9 +133,19 @@ void on_window_change(GLFWwindow* window, int width, int height) {
 //
 // Parameters
 // window - the window which has received input.
-void process_input(GLFWwindow* window) {
+void process_input(GLFWwindow* window, myopengl::shader& shader, float& mix) {
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, true);
+  }
+
+  if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+    mix = mix < 1.0f ? mix += 0.01f : mix;
+    shader.set_float("Mix", mix);
+  }
+
+  if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+    mix = mix > 0.0f ? mix -= 0.01f : mix;
+    shader.set_float("Mix", mix);
   }
 }
 
@@ -181,16 +196,21 @@ unsigned int create_element_buffer(unsigned int* indices, size_t n) {
   return ebo;
 }
 
-unsigned int create_texture(const char* path, unsigned int format) {
+// Creates a new texture, configures it, loads an image file into the texture and generates midmaps.
+//
+// Parameters
+// path - path to the image file to load
+// format - colour format to be used (GL_RGB/GL_RGBA)
+// configure_texture - a function pointer to a method to configure the texture
+//
+// Returns the OpenGL generated id for the texture
+unsigned int create_texture(const char* path, unsigned int format, configure_texture_t configure_texture) {
   unsigned int texture = 0;
 
   glGenTextures(1, &texture);
   glBindTexture(GL_TEXTURE_2D, texture);
 
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  configure_texture();
 
   int width = 0;
   int height = 0;
@@ -209,4 +229,12 @@ unsigned int create_texture(const char* path, unsigned int format) {
   stbi_image_free(data);
 
   return texture;
+}
+
+// Sets the standard options for a texture
+void standard_texture_configuration() {
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
